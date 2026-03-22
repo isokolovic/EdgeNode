@@ -1,7 +1,5 @@
-#include <cstdio>
 #include <iostream>
 #include <unistd.h>
-#include <pigpio.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <fcntl.h>
