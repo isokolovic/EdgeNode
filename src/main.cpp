@@ -9,7 +9,7 @@
 
 using namespace std;
 
-#define GPIO_BASE 0x3F200000 // GPIO Base Addr
+#define GPIO_BASE 0x3F200000 // GPIO Base Addr.
 #define GPIO_LEN 0xB4 //GPIO memory length -> ?
 
 volatile unsigned* gpio;
