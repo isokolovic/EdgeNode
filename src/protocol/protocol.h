@@ -3,11 +3,10 @@
 
 // Wire protocol for RPi <-> Arduino communication.
 // Format: [START][TYPE][LENGTH][PAYLOAD...][CHECKSUM]
-// Portable: no STL, no exceptions — compiles on C++23 and Arduino C++11.
 
 namespace edgenode::protocol {
 
-constexpr uint8_t START_BYTE  = 0xAA;
+constexpr uint8_t START_BYTE  = 0xAA;   
 constexpr uint8_t MAX_PAYLOAD = 32;
 
 enum class MsgType : uint8_t {
@@ -27,7 +26,7 @@ struct Message {
 };
 
 uint8_t compute_checksum(const Message& msg);
-int  serialize(const Message& msg, uint8_t* buffer, int buffer_size);
+int serialize(const Message& msg, uint8_t* buffer, int buffer_size);
 bool deserialize(const uint8_t* buffer, int length, Message& msg);
 
 } // namespace edgenode::protocol
