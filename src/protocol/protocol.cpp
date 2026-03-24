@@ -12,7 +12,6 @@ uint8_t compute_checksum(const Message& msg)
     return cs;
 }
 
-// Pack Message into a byte buffer. Returns bytes written, or -1 if buffer too small.
 int serialize(const Message& msg, uint8_t* buffer, int buffer_size)
 {
     int total = 4 + msg.length; // START + TYPE + LEN + payload + CHECKSUM
@@ -30,7 +29,6 @@ int serialize(const Message& msg, uint8_t* buffer, int buffer_size)
     return i;
 }
 
-// Unpack a byte buffer into Message. Returns false on bad frame or checksum mismatch.
 bool deserialize(const uint8_t* buffer, int length, Message& msg)
 {
     if (length < 4) // START + TYPE + LEN + CHECKSUM
