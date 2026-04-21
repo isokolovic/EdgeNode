@@ -26,6 +26,9 @@ Collects processed data and operational metrics for remote monitoring and histor
 **System integration and lifecycle**
 Handles startup, shutdown, error recovery, and health monitoring so the node runs reliably in production.
 
+<img width="893" height="899" alt="image" src="https://github.com/user-attachments/assets/66e5699f-ea43-4165-9efd-02602f378d24" />
+
+
 ## Key points
 
 - **Portable** — hardware-specific details are isolated so the same higher-level code runs across different boards.
