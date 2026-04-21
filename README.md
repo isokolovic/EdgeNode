@@ -36,4 +36,4 @@ Handles startup, shutdown, error recovery, and health monitoring so the node run
 
 ## Documentation
 
-See [docs/EdgeNode.md](docs/EdgeNode.md) for architecture details, protocol specification, hardware wiring. 
+See [docs/edge_node.md](docs/edge_node.md) for architecture details, protocol specification, hardware wiring.

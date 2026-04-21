@@ -1,6 +1,4 @@
 /build/
 /out/
-.vscode/
 /.vs/
-*.md
-*.html
+/.vscode/
