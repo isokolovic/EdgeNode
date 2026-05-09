@@ -68,10 +68,12 @@ void set_pin_mode(int pin, PinMode mode)
 {
     // Each function select register controls 10 pins.
     int reg = pin / 10;
-    int shift = (pin % 10) * 3;
+    // Pin inside register * 3 bits per pin
+    int shift = (pin % 10) * 3; 
 
     unsigned val = *(gpio_map + reg);
     // Clear the current mode bits first.
+    // Canonical clear bitfield pattern: val = val & ~(mask_for_field)
     val &= ~(7u << shift);
 
     if (mode == PinMode::OUTPUT)
@@ -92,7 +94,7 @@ bool read_pin(int pin)
 {
     // GPLEV starts at offset 13.
     int reg = pin / 32;
-    int shift = pin % 32;
+    int shift = pin % 32; 
     return (*(gpio_map + 13 + reg) & (1u << shift)) != 0;
 }
 
