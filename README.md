@@ -1,42 +1,40 @@
 # EdgeNode
-
-Embedded edge gateway that reads sensors, processes data, and publishes telemetry. C++23 on Raspberry Pi, C++11 on Arduino.
+Embedded edge gateway that reads sensors, processes data, and publishes telemetry.
 
 ## Overview
-
-A Raspberry Pi daemon ingests data from physical sensors and an Arduino, processes it through an edge pipeline, and publishes telemetry to a cloud dashboard. The Arduino reads sensors, packages structured frames, and sends them to the RPi over a serial or CAN bus connection. GPIO sensors on the RPi are read directly. The daemon starts, initialises all connected hardware, and runs everything — the hardware determines what data flows.
+A Raspberry Pi daemon ingests data from physical sensors and an Arduino, processes it through an edge pipeline, and publishes telemetry to a cloud dashboard. The Arduino reads sensors, packages structured frames, and sends them to the RPi over UART or CAN — both transports operate simultaneously, and each sensor source is individually configured to use one or the other. GPIO sensors on the RPi are read directly. Communication is bidirectional: sensor data flows upstream from hardware to the dashboard, and commands flow downstream from the dashboard or rule engine back to actuators on both boards.
 
 ## Architecture
 
-**Hardware abstraction layer**
-Provides a consistent interface to hardware peripherals so higher layers do not depend on specific chips or buses.
+**Layer 1 — Hardware abstraction**
+Provides a consistent, transport-agnostic interface to all hardware peripherals so higher layers never depend on specific chips, buses, or pin numbers. Resource ownership and lifetime are managed here via RAII.
 
-**Protocol adapters**
-Convert raw hardware input into a single, unified sensor reading format that the rest of the system can use.
+**Layer 2 — Protocol adapters**
+Convert raw hardware input — UART frames, CAN frames, or direct GPIO readings — into a single unified sensor reading type that the rest of the system uses. Handle both upstream (sensor data in) and downstream (commands out) directions.
 
-**Asynchronous messaging layer**
-Decouples producers and consumers of data so components can run independently and communicate without blocking.
+**Layer 3 — Async message bus**
+A lock-free ring buffer decouples producers and consumers so components run independently without blocking each other on the data path.
 
-**Data processing pipeline**
-Applies filtering, calibration, anomaly detection, and rule-based handling to sensor readings before they are acted on or stored.
+**Layer 4 — Processing and logic**
+Applies filtering, calibration, threshold detection, and rule-based handling to sensor readings. ECU state machines and a diagnostic trouble code manager live here. The rule engine can trigger downstream commands in response to sensor conditions.
 
-**Telemetry and storage**
-Collects processed data and operational metrics for remote monitoring and historical analysis.
+**Layer 5 — Telemetry**
+Collects processed readings and routes them to one or more output destinations: local file, MQTT broker, or cloud dashboard. Sink failures are isolated and do not block other sinks.
 
-**System integration and lifecycle**
-Handles startup, shutdown, error recovery, and health monitoring so the node runs reliably in production.
+**Layer 6 — System integration**
+Handles daemon startup, graceful shutdown, automatic restart on failure, and health monitoring so the node runs reliably in production.
 
-<img width="893" height="899" alt="image" src="https://github.com/user-attachments/assets/66e5699f-ea43-4165-9efd-02602f378d24" />
+<img width="547" height="886" alt="image" src="https://github.com/user-attachments/assets/9568ed8e-4bca-4eb1-89c9-453da1b35d03" />
 
 
 ## Key points
-
-- **Portable** — hardware-specific details are isolated so the same higher-level code runs across different boards.
-- **Modular** — each responsibility is a separate component that can be replaced or extended.
-- **Asynchronous** — components communicate without tight coupling to improve responsiveness and resilience.
-- **Observable** — the system exposes runtime metrics and logs for monitoring and troubleshooting.
-- **Robust lifecycle** — clean startup, graceful shutdown, and health checks are built in.
+- **Portable** — hardware-specific details are isolated so the same higher-level code runs across different boards and platforms.
+- **Modular** — each responsibility is a separate component that can be replaced or extended independently.
+- **Bidirectional** — sensor data flows upstream to telemetry; commands flow downstream to actuators on both the RPi and the Arduino.
+- **Transport-agnostic** — UART and CAN operate simultaneously; each sensor source is individually assigned to one transport and can be switched at runtime without restarting the daemon.
+- **Asynchronous** — the lock-free message bus decouples producers and consumers for non-blocking, deterministic data flow.
+- **Observable** — structured logging, telemetry sinks, and a health watchdog provide runtime visibility.
+- **Robust lifecycle** — clean startup, graceful shutdown, and automatic restart on failure are built in.
 
 ## Documentation
-
-See [docs/edge_node.md](docs/edge_node.md) for architecture details, protocol specification, hardware wiring.
+See [docs/edge_node.md](docs/edge_node.md) for architecture details, protocol specification, and hardware wiring.
