@@ -3,6 +3,8 @@
 ## Project Overview
 EdgeNode is a C++23 embedded edge gateway on Raspberry Pi that reads sensors, processes
 data, and publishes telemetry. Arduino acts as a sensor node (C++11).
+Communication is bidirectional: sensor data flows upstream (Arduino/GPIO to RPi pipeline),
+commands flow downstream (web interface/rule engine through RPi to Arduino actuators).
 Full architecture is in `docs/edge_node.md`.
 
 ## Targets
@@ -13,7 +15,7 @@ Full architecture is in `docs/edge_node.md`.
 ## Phases
 - Phase 1 -- Core Types (SensorReading, Result<T,E>, ring_buffer, GTest).
 - Phase 2 -- HAL (GpioPin RAII, UartPort RAII, IPort interface)
-- Phase 3 -- Protocol (CRC8, 2-byte CAN IDs, ETX framing)
+- Phase 3 -- Protocol (CRC8, 2-byte CAN IDs, sequence counter, ETX framing, transport-blind integrity)
 - Phase 4 -- Sensor Integration
 - Phase 5 -- State Machine
 - Phase 6 -- Storage / Persistence
@@ -28,6 +30,10 @@ Full architecture is in `docs/edge_node.md`.
 - Unscoped enum values: UPPER_CASE (`MSG_PING`, `EP_PING`).
 - Constants: snake_case for namespace-scoped (`start_byte`), UPPER_CASE for Arduino/file-scoped (`EP_START_BYTE`).
 - No column-aligned assignments. Single spacing only.
+- No trailing underscore or other special annotations on member variables. Private
+  members use the same snake_case as any other variable. If a member name would collide
+  with a public method name, shorten or abbreviate the member (e.g. `val` for a `value()`
+  accessor, `err` for an `error()` accessor).
 - Filenames: snake_case.
 
 ## Code Style
@@ -38,12 +44,13 @@ Full architecture is in `docs/edge_node.md`.
 
 ## Namespaces
 - `epcore` - shared wire protocol, used by both RPi and Arduino host-side code.
+- `edgenode::core` - core types (SensorReading, Result, RingBuffer).
 - `edgenode::protocol` - RPi protocol wrapper.
 - `edgenode::gpio` - RPi GPIO abstraction.
 - `edgenode::serial` - RPi serial port wrapper.
 - `edgenode::tests` - unit tests.
 - `edgenode::hw_test` - hardware integration tests only, lives in `tests/test_hw.cpp`.
-- Arduino code: Use simple C‑style prefixes instead of namespaces to avoid linker issues
+- Arduino code: Use simple C-style prefixes instead of namespaces to avoid linker issues
 
 ## Code Patterns
 - **RAII everywhere:** Every hardware resource (fd, mmap, SPI) acquires in constructor,
@@ -97,16 +104,6 @@ Create a move-only wrapper class for a system resource:
 4. Implement move ctor and move assignment (transfer ownership, invalidate source).
 5. Provide `is_valid()` or `is_open()` query method.
 6. No exceptions - return bool or error code from factory/open methods.
-
-### Skill: CRC8 Protocol Frame
-Implement a CAN-compatible binary frame with CRC-8/CCITT. The frame is delimited by a
-start marker and an end marker. Between them: a two-byte big-endian message identifier
-(standard CAN 11-bit address space), a one-byte data length code (0-8, CAN maximum),
-the payload bytes, and a one-byte CRC. The CRC uses polynomial 0x07 with no reflection
-and no final XOR, computed over the identifier, length code, and payload only. Total
-overhead is 6 bytes. Maximum frame size is 14 bytes.
-- Provide `serialize()` and `deserialize()` functions.
-- Arduino side: C-style `ep_` prefix. RPi side: `edgenode::protocol` namespace.
 
 ### Skill: New Test Module
 Add a test for a new module:
