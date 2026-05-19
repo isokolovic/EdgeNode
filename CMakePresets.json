@@ -78,8 +78,8 @@
             }
         },
         {
-            "name": "macos-debug",
-            "displayName": "macOS Debug",
+            "name": "Pi-ARM-Debug",
+            "displayName": "Pi ARM Debug",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "installDir": "${sourceDir}/out/install/${presetName}",
@@ -89,11 +89,18 @@
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
-                "rhs": "Darwin"
+                "rhs": "Linux"
             },
             "vendor": {
                 "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
-                    "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
+                    "sourceDir": "/home/pi/EdgeNode",
+                    "copySources": true,
+                    "remoteCopySourcesMethod": "rsync",
+                    "copySourcesOptions": {
+                        "exclusionList": [ ".vs", ".git", "out", "build" ],
+                        "method": "rsync"
+                    },
+                    "remoteMachineName": "192.168.5.22"
                 }
             }
         }
