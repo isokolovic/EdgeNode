@@ -38,7 +38,8 @@ public:
     bool is_open() const;
 
 private:
-    int fd_ = -1;
+	// File descriptor for the serial port, -1 if not open.
+    int fd = -1;
 };
 
 }

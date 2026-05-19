@@ -9,10 +9,10 @@
 namespace edgenode::serial {
 
 SerialPort::~SerialPort() { close(); }
-SerialPort::SerialPort(SerialPort&& other) noexcept : fd_(other.fd_) { other.fd_ = -1; }
+SerialPort::SerialPort(SerialPort&& other) noexcept : fd(other.fd) { other.fd = -1; }
 SerialPort& SerialPort::operator=(SerialPort&& other) noexcept
 {
-    if (this != &other) { close(); fd_ = other.fd_; other.fd_ = -1; }
+    if (this != &other) { close(); fd = other.fd; other.fd = -1; }
     return *this;
 }
 bool SerialPort::open(const std::string& device, int baud_rate)
@@ -21,10 +21,10 @@ bool SerialPort::open(const std::string& device, int baud_rate)
     (void)baud_rate;
     return false;
 }
-void SerialPort::close() { fd_ = -1; }
+void SerialPort::close() { fd = -1; }
 int SerialPort::write(const uint8_t*, int) { return -1; }
 int SerialPort::read(uint8_t*, int, int) { return -1; }
-bool SerialPort::is_open() const { return false; }
+bool SerialPort::is_open() const { return fd >= 0; }
 
 }
 
@@ -59,10 +59,10 @@ namespace edgenode::serial {
 
 SerialPort::~SerialPort() { close(); }
 
-SerialPort::SerialPort(SerialPort&& other) noexcept : fd_(other.fd_)
+SerialPort::SerialPort(SerialPort&& other) noexcept : fd(other.fd)
 {
     // Leave the moved-from object empty.
-    other.fd_ = -1;
+    other.fd = -1;
 }
 
 SerialPort& SerialPort::operator=(SerialPort&& other) noexcept
@@ -71,8 +71,8 @@ SerialPort& SerialPort::operator=(SerialPort&& other) noexcept
     {
         // Close the current descriptor before taking ownership.
         close();
-        fd_ = other.fd_;
-        other.fd_ = -1;
+        fd = other.fd;
+        other.fd = -1;
     }
     return *this;
 }
@@ -80,8 +80,8 @@ SerialPort& SerialPort::operator=(SerialPort&& other) noexcept
 bool SerialPort::open(const std::string& device, int baud_rate)
 {
     // Open the device in non-blocking mode.
-    fd_ = ::open(device.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
-    if (fd_ < 0)
+    fd = ::open(device.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+    if (fd < 0)
     {
         std::cerr << "Cannot open " << device << ": " << strerror(errno) << "\n";
         return false;
@@ -90,7 +90,7 @@ bool SerialPort::open(const std::string& device, int baud_rate)
     // Start from the current terminal settings.
     struct termios tty{};
 
-    if (tcgetattr(fd_, &tty) != 0)
+    if (tcgetattr(fd, &tty) != 0)
     {
         std::cerr << "tcgetattr failed: " << strerror(errno) << "\n";
         close();
@@ -119,7 +119,7 @@ bool SerialPort::open(const std::string& device, int baud_rate)
     tty.c_cc[VMIN] = 0;
     tty.c_cc[VTIME] = 0;
 
-    if (tcsetattr(fd_, TCSANOW, &tty) != 0)
+    if (tcsetattr(fd, TCSANOW, &tty) != 0)
     {
         std::cerr << "tcsetattr failed: " << strerror(errno) << "\n";
         close();
@@ -127,7 +127,7 @@ bool SerialPort::open(const std::string& device, int baud_rate)
     }
 
     // Drop any stale bytes buffered by the driver.
-    tcflush(fd_, TCIOFLUSH);
+    tcflush(fd, TCIOFLUSH);
 
     std::cout << "Opened " << device << " @ " << baud_rate << " baud\n";
     return true;
@@ -135,27 +135,27 @@ bool SerialPort::open(const std::string& device, int baud_rate)
 
 void SerialPort::close()
 {
-    if (fd_ >= 0)
+    if (fd >= 0)
     {
-        ::close(fd_);
-        fd_ = -1;
+        ::close(fd);
+        fd = -1;
     }
 }
 
 int SerialPort::write(const uint8_t* data, int length)
 {
-    if (fd_ < 0 || !data) return -1;
-    return static_cast<int>(::write(fd_, data, static_cast<size_t>(length)));
+    if (fd < 0 || !data) return -1;
+    return static_cast<int>(::write(fd, data, static_cast<size_t>(length)));
 }
 
 int SerialPort::read(uint8_t* buffer, int max_length, int timeout_ms)
 {
-    if (fd_ < 0 || !buffer)
+    if (fd < 0 || !buffer)
         return -1;
 
     // Wait for input or until the timeout expires.
     struct pollfd pfd{};
-    pfd.fd = fd_;
+    pfd.fd = fd;
     pfd.events = POLLIN;
 
     int ret = poll(&pfd, 1, timeout_ms);
@@ -164,10 +164,10 @@ int SerialPort::read(uint8_t* buffer, int max_length, int timeout_ms)
     if (ret == 0)
         return 0;
 
-    return static_cast<int>(::read(fd_, buffer, static_cast<size_t>(max_length)));
+    return static_cast<int>(::read(fd, buffer, static_cast<size_t>(max_length)));
 }
 
-bool SerialPort::is_open() const { return fd_ >= 0; }
+bool SerialPort::is_open() const { return fd >= 0; }
 
 }
 
