@@ -1,169 +1,160 @@
 #include "rpi/edge_protocol.h"
-#include <cassert>
+
+#include <gtest/gtest.h>
 #include <cstring>
-#include <iostream>
 
 namespace edgenode::tests {
 
-using namespace edgenode::protocol;
+	using namespace edgenode::protocol;
 
-// Verify checksum generation for empty and non-empty payloads.
-void test_checksum()
-{
-    Message msg{};
-    msg.type = MsgType::PING;
-    msg.length = 0;
+	/// @brief Test checksum computation for messages with empty and non-empty payloads.
+	TEST(Protocol, ChecksumEmptyPayload)
+	{
+		Message msg{};
+		msg.type = MsgType::PING;
+		msg.length = 0;
 
-    uint8_t cs = compute_checksum(msg);
-    assert(cs == 0x01);
+		EXPECT_EQ(compute_checksum(msg), 0x01);
+	}
 
-    msg.type = MsgType::SENSOR_DATA;
-    msg.length = 2;
-    msg.payload[0] = 0xAB;
-    msg.payload[1] = 0xCD;
+	/// @brief Test checks computation for a message with a non-empty payload, ensuring it correctly incorporates the type, length, and payload bytes.
+	TEST(Protocol, ChecksumNonEmptyPayload)
+	{
+		Message msg{};
+		msg.type = MsgType::SENSOR_DATA;
+		msg.length = 2;
+		msg.payload[0] = 0xAB;
+		msg.payload[1] = 0xCD;
 
-    cs = compute_checksum(msg);
-    assert(cs == (0x10 ^ 0x02 ^ 0xAB ^ 0xCD));
+		EXPECT_EQ(compute_checksum(msg), (0x10 ^ 0x02 ^ 0xAB ^ 0xCD));
+	}
 
-    std::cout << "  checksum: PASS\n";
-}
+	/// @brief Test checks that a message can be serialized into a byte buffer and then deserialized back into a Message struct, with all fields (type, length, payload) remaining consistent throughout the process.
+	TEST(Protocol, SerializeDeserializeRoundtrip)
+	{
+		Message original{};
+		original.type = MsgType::SENSOR_DATA;
+		original.length = 4;
+		original.payload[0] = 0x41;
+		original.payload[1] = 0xC8;
+		original.payload[2] = 0x00;
+		original.payload[3] = 0x00;
 
-// Verify a serialized frame roundtrips back into the same message.
-void test_roundtrip()
-{
-    Message original{};
-    original.type = MsgType::SENSOR_DATA;
-    original.length = 4;
-    original.payload[0] = 0x41;
-    original.payload[1] = 0xC8;
-    original.payload[2] = 0x00;
-    original.payload[3] = 0x00;
+		uint8_t buffer[64]{};
+		int len = serialize(original, buffer, sizeof(buffer));
+		ASSERT_EQ(len, OVERHEAD + original.length);
 
-    uint8_t buffer[64]{};
-    int len = serialize(original, buffer, sizeof(buffer));
-    assert(len == OVERHEAD + original.length);
+		Message decoded{};
+		ASSERT_TRUE(deserialize(buffer, len, decoded));
+		EXPECT_EQ(decoded.type, original.type);
+		EXPECT_EQ(decoded.length, original.length);
+		EXPECT_EQ(std::memcmp(decoded.payload, original.payload, decoded.length), 0);
+	}
 
-    Message decoded{};
-    assert(deserialize(buffer, len, decoded));
-    assert(decoded.type == original.type);
-    assert(decoded.length == original.length);
-    assert(std::memcmp(decoded.payload, original.payload, decoded.length) == 0);
+	/// @brief Test checks that a simple PING message can be serialized and deserialized correctly, ensuring that even messages with no payload are handled properly by the protocol implementation.
+	TEST(Protocol, PingRoundtrip)
+	{
+		Message ping{};
+		ping.type = MsgType::PING;
+		ping.length = 0;
 
-    std::cout << "  roundtrip: PASS\n";
-}
+		uint8_t buffer[64]{};
+		int len = serialize(ping, buffer, sizeof(buffer));
+		ASSERT_EQ(len, OVERHEAD);
 
-// Verify the smallest valid message serializes correctly.
-void test_ping_pong()
-{
-    Message ping{};
-    ping.type = MsgType::PING;
-    ping.length = 0;
+		Message decoded{};
+		ASSERT_TRUE(deserialize(buffer, len, decoded));
+		EXPECT_EQ(decoded.type, MsgType::PING);
+		EXPECT_EQ(decoded.length, 0);
+	}
 
-    uint8_t buffer[64]{};
-    int len = serialize(ping, buffer, sizeof(buffer));
-    assert(len == OVERHEAD);
+	/// @brief Test checks that the deserialization function correctly identifies and rejects messages with an invalid start byte, ensuring that the protocol implementation is robust against malformed input.
+	TEST(Protocol, RejectsBadStartByte)
+	{
+		Message msg{};
+		uint8_t bad[] = { 0xBB, 0x01, 0x00, 0x01 };
 
-    Message decoded{};
-    assert(deserialize(buffer, len, decoded));
-    assert(decoded.type == MsgType::PING);
-    assert(decoded.length == 0);
+		EXPECT_FALSE(deserialize(bad, sizeof(bad), msg));
+	}
 
-    std::cout << "  ping/pong: PASS\n";
-}
+	/// @brief Test checks that the deserialization function correctly identifies and rejects messages that are truncated (i.e., shorter than the minimum expected length), ensuring that the protocol implementation can handle incomplete data gracefully.
+	TEST(Protocol, RejectsTruncatedFrame)
+	{
+		Message msg{};
+		uint8_t bad[] = { 0xAA, 0x01 };
 
-// Verify malformed frames are rejected.
-void test_bad_data()
-{
-    Message msg{};
+		EXPECT_FALSE(deserialize(bad, sizeof(bad), msg));
+	}
 
-    uint8_t bad1[] = {0xBB, 0x01, 0x00, 0x01};
-    assert(!deserialize(bad1, sizeof(bad1), msg));
+	/// @brief Test checks that the deserialization function correctly identifies and rejects messages with an invalid checksum, ensuring that the protocol implementation can detect data corruption.
+	TEST(Protocol, RejectsBadChecksum)
+	{
+		Message msg{};
+		uint8_t bad[] = { 0xAA, 0x01, 0x00, 0xFF };
 
-    uint8_t bad2[] = {0xAA, 0x01};
-    assert(!deserialize(bad2, sizeof(bad2), msg));
+		EXPECT_FALSE(deserialize(bad, sizeof(bad), msg));
+	}
+	/// @brief Test checks that the deserialization function correctly identifies and rejects messages that claim to have a payload length exceeding the maximum allowed, ensuring that the protocol implementation enforces payload size limits.
+	TEST(Protocol, RejectsOversizedLength)
+	{
+		Message msg{};
+		uint8_t bad[] = { 0xAA, 0x01, 0xFF, 0x00 };
 
-    uint8_t bad3[] = {0xAA, 0x01, 0x00, 0xFF};
-    assert(!deserialize(bad3, sizeof(bad3), msg));
+		EXPECT_FALSE(deserialize(bad, sizeof(bad), msg));
+	}
 
-    uint8_t bad4[] = {0xAA, 0x01, 0xFF, 0x00};
-    assert(!deserialize(bad4, sizeof(bad4), msg));
+	/// @brief Test checks that all message types can be serialized and deserialized correctly, ensuring that the protocol implementation handles each message type as expected.
+	TEST(Protocol, AllMessageTypesRoundtrip)
+	{
+		MsgType types[] = {
+			MsgType::PING, MsgType::PONG, MsgType::SENSOR_DATA,
+			MsgType::GPIO_COMMAND, MsgType::ACK, MsgType::ERROR
+		};
 
-    std::cout << "  bad data rejection: PASS\n";
-}
+		for (MsgType t : types)
+		{
+			Message msg{};
+			msg.type = t;
+			msg.length = 0;
 
-// Verify all message types survive a roundtrip.
-void test_every_message_type()
-{
-    MsgType types[] = {
-        MsgType::PING, MsgType::PONG, MsgType::SENSOR_DATA,
-        MsgType::GPIO_COMMAND, MsgType::ACK, MsgType::ERROR
-    };
+			uint8_t buffer[64]{};
+			int len = serialize(msg, buffer, sizeof(buffer));
+			ASSERT_EQ(len, OVERHEAD);
 
-    for (MsgType t : types)
-    {
-        Message msg{};
-        msg.type = t;
-        msg.length = 0;
+			Message decoded{};
+			ASSERT_TRUE(deserialize(buffer, len, decoded));
+			EXPECT_EQ(decoded.type, t);
+		}
+	}
 
-        uint8_t buffer[64]{};
-        int len = serialize(msg, buffer, sizeof(buffer));
-        assert(len == OVERHEAD);
+	/// @brief Test Test checks that a message with the maximum allowed payload size can be serialized and deserialized correctly, ensuring that the protocol implementation can handle edge cases involving large payloads without data loss or corruption.
+	TEST(Protocol, MaxPayloadRoundtrip)
+	{
+		Message msg{};
+		msg.type = MsgType::SENSOR_DATA;
+		msg.length = MAX_PAYLOAD;
+		for (uint8_t i = 0; i < MAX_PAYLOAD; ++i)
+			msg.payload[i] = i;
 
-        Message decoded{};
-        assert(deserialize(buffer, len, decoded));
-        assert(decoded.type == t);
-    }
+		uint8_t buffer[MAX_PAYLOAD + OVERHEAD]{};
+		int len = serialize(msg, buffer, sizeof(buffer));
+		ASSERT_EQ(len, OVERHEAD + MAX_PAYLOAD);
 
-    std::cout << "  all message types: PASS\n";
-}
+		Message decoded{};
+		ASSERT_TRUE(deserialize(buffer, len, decoded));
+		EXPECT_EQ(decoded.length, MAX_PAYLOAD);
+		EXPECT_EQ(std::memcmp(decoded.payload, msg.payload, MAX_PAYLOAD), 0);
+	}
 
-// Verify the maximum payload size is supported.
-void test_max_payload()
-{
-    Message msg{};
-    msg.type = MsgType::SENSOR_DATA;
-    msg.length = MAX_PAYLOAD;
-    for (uint8_t i = 0; i < MAX_PAYLOAD; ++i)
-        msg.payload[i] = i;
+	/// @brief Test checks that the serialization function correctly identifies and rejects attempts to serialize a message into a buffer that is too small to hold the entire message, ensuring that the protocol implementation can prevent buffer overflows and handle insufficient buffer sizes gracefully.
+	TEST(Protocol, SerializeFailsWhenBufferTooSmall)
+	{
+		Message msg{};
+		msg.type = MsgType::PING;
+		msg.length = 0;
 
-    uint8_t buffer[MAX_PAYLOAD + OVERHEAD]{};
-    int len = serialize(msg, buffer, sizeof(buffer));
-    assert(len == OVERHEAD + MAX_PAYLOAD);
-
-    Message decoded{};
-    assert(deserialize(buffer, len, decoded));
-    assert(decoded.length == MAX_PAYLOAD);
-    assert(std::memcmp(decoded.payload, msg.payload, MAX_PAYLOAD) == 0);
-
-    std::cout << "  max payload: PASS\n";
-}
-
-// Verify serialization fails when the output buffer is too small.
-void test_buffer_too_small()
-{
-    Message msg{};
-    msg.type = MsgType::PING;
-    msg.length = 0;
-
-    uint8_t tiny[2]{};
-    int len = serialize(msg, tiny, sizeof(tiny));
-    assert(len == -1);
-
-    std::cout << "  buffer too small: PASS\n";
-}
+		uint8_t tiny[2]{};
+		EXPECT_EQ(serialize(msg, tiny, sizeof(tiny)), -1);
+	}
 
 } // namespace edgenode::tests
-
-int main()
-{
-    std::cout << "Protocol tests:\n";
-    edgenode::tests::test_checksum();
-    edgenode::tests::test_roundtrip();
-    edgenode::tests::test_ping_pong();
-    edgenode::tests::test_bad_data();
-    edgenode::tests::test_every_message_type();
-    edgenode::tests::test_max_payload();
-    edgenode::tests::test_buffer_too_small();
-    std::cout << "All protocol tests passed.\n";
-    return 0;
-}

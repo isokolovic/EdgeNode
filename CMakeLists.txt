@@ -10,6 +10,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# On memory-constrained ARM targets (Raspberry Pi), limit concurrent compile jobs so large translation units (for example the bundled googletest sources) do not exhaust RAM and get killed
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
+    set_property(GLOBAL PROPERTY JOB_POOLS edgenode_compile_pool=1)
+    set(CMAKE_JOB_POOL_COMPILE edgenode_compile_pool)
+    message(STATUS "Build: limiting compile concurrency to 1 on ARM to avoid OOM")
+endif()
+
 # Build options.
 option(EDGENODE_MOCK_GPIO "Use mock GPIO for non-RPi builds" OFF)
 option(EDGENODE_BUILD_TESTS "Build unit tests" ON)
