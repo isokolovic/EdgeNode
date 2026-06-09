@@ -73,7 +73,18 @@
             },
             "vendor": {
                 "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
-                    "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
+                    "sourceDir": "$env{HOME}/EdgeNode",
+                    "copySources": true,
+                    "copyBuildOutput": false,
+                    "copyAdditionalIncludeDirectoriesOnly": false,
+                    "copySourcesExclusionList": [
+                        ".vs",
+                        ".vscode",
+                        ".git",
+                        "out",
+                        "build"
+                    ],
+                    "rsyncCommandArgs": "-t -r --delete"
                 }
             }
         },
