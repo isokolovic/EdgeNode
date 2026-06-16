@@ -1,4 +1,4 @@
 #!/bin/bash
 echo "→ Relaying push to GitHub..."
 git push github --mirror
-echo "✓ Push to GitHub complete"
+echo "✓ Push to GitHub complete."
