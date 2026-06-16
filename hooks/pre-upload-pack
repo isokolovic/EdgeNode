@@ -1,0 +1,6 @@
+#!/bin/bash
+echo "→ Pulling latest from GitHub first..."
+git fetch github >> /home/pi/hook.log 2>&1
+git update-ref refs/heads/main refs/remotes/github/main >> /home/pi/hook.log 2>&1
+echo "$(date): pre-upload-pack fired" >> /home/pi/hook.log
+echo "✓ Synced from GitHub."
