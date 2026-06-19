@@ -1,35 +1,5 @@
 #include "rpi/serial_comm.h"
 
-#ifdef _WIN32
-
-// Stub implementation for Windows builds (no real serial hardware).
-
-#include <iostream>
-
-namespace edgenode::serial {
-
-SerialPort::~SerialPort() { close(); }
-SerialPort::SerialPort(SerialPort&& other) noexcept : fd(other.fd) { other.fd = -1; }
-SerialPort& SerialPort::operator=(SerialPort&& other) noexcept
-{
-    if (this != &other) { close(); fd = other.fd; other.fd = -1; }
-    return *this;
-}
-bool SerialPort::open(const std::string& device, int baud_rate)
-{
-    std::cerr << "Serial not supported on Windows (device: " << device << ")\n";
-    (void)baud_rate;
-    return false;
-}
-void SerialPort::close() { fd = -1; }
-int SerialPort::write(const uint8_t*, int) { return -1; }
-int SerialPort::read(uint8_t*, int, int) { return -1; }
-bool SerialPort::is_open() const { return fd >= 0; }
-
-}
-
-#else
-
 #include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -170,5 +140,3 @@ int SerialPort::read(uint8_t* buffer, int max_length, int timeout_ms)
 bool SerialPort::is_open() const { return fd >= 0; }
 
 }
-
-#endif

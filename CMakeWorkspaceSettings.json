@@ -1,10 +1,6 @@
 {
   "enableCMake": true,
   "enabledPresets": [
-    "x64-debug",
-    "x64-release",
-    "x86-debug",
-    "x86-release",
     "linux-debug",
     "Pi-ARM-Debug"
   ]
