@@ -12,7 +12,7 @@ The system is six layers deep. Each layer owns one concern and enforces one boun
 - No file descriptor, memory mapping, or device handle may exist outside a wrapper.
 - No heap allocation. All HAL objects use stack or static storage.
 - All transport wrappers implement a common port interface so higher layers never depend on a concrete transport type.
-- When the build system detects a non-ARM host (Windows, WSL2), all hardware calls route to mock implementations that log to stdout. The binary must not crash on platforms without GPIO.
+- When the build system detects a non-ARM host (WSL2 or a Linux workstation), all hardware calls route to mock implementations that log to stdout. The binary must not crash on platforms without GPIO.
 
 **Layer 2 -- Protocol adapters**
 
@@ -195,7 +195,7 @@ The threading model is one producer thread per data source, one consumer thread 
 - Implement Result<T,E> to replace raw bool returns in new code.
 - Implement a fixed-capacity lock-free SPSC ring buffer with compile-time sizing.
 - Set up GTest via CMake FetchContent so tests download and build automatically.
-- Verification: all core types compile on all three platforms (Windows MSVC, Linux GCC 13, ARM GCC). Ring buffer passes a concurrent stress test with one producer and one consumer thread and no data loss.
+- Verification: all core types compile on both target toolchains (Linux GCC 13 and ARM GCC). Ring buffer passes a concurrent stress test with one producer and one consumer thread and no data loss.
 
 **Phase 2 -- Hardware abstraction**
 
@@ -251,7 +251,7 @@ The threading model is one producer thread per data source, one consumer thread 
 
 **Unit tests (no hardware required)**
 
-- Run on every platform (Windows, WSL2, ARM) as part of the normal build.
+- Run on every platform (WSL2, ARM) as part of the normal build.
 - Cover core types (sensor reading construction, result type semantics, ring buffer push/pop/overflow/concurrency).
 - Cover protocol codec (UART serialisation roundtrip, CRC validation, malformed frame rejection).
 - Cover GPIO using the mock backend (init/cleanup, pin mode, read/write, multiple pins).
