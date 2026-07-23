@@ -8,8 +8,8 @@ commands flow downstream (web interface/rule engine through RPi to Arduino actua
 Full architecture is in `docs/edge_node.md`.
 
 ## Targets
-- RPi / WSL2 / host: C++23
-- Arduino: C++11
+- RPi: C++23 (g++)
+- Arduino Mega 2560: C++11 (avr-gcc) supports namespaces and scoped enums.
 - Mock GPIO: auto-enabled on non-ARM platforms via `EDGENODE_MOCK_GPIO`.
 
 ## Phases
@@ -26,9 +26,15 @@ Full architecture is in `docs/edge_node.md`.
 - Classes/structs: PascalCase (`SerialPort`, `WireMessage`).
 - Functions/variables: snake_case (`compute_checksum`, `start_byte`).
 - Namespaces: lowercase (`epcore`, `edgenode::gpio`).
-- Scoped enum values (`enum class`): UPPER_CASE (`PING`, `SENSOR_DATA`).
-- Unscoped enum values: UPPER_CASE (`MSG_PING`, `EP_PING`).
-- Constants: snake_case for namespace-scoped (`start_byte`), UPPER_CASE for Arduino/file-scoped (`EP_START_BYTE`).
+- Scoped enum values (`enum class`): UPPER_CASE (`PING`, `SENSOR_DATA`). Used on both RPi
+ and Arduino.
+  <!-- TODO: question to be answered - Arduino and RPi are re-implementing much of te
+  data structures and logic in the same way. Perhaps this should all be inherited from 
+  epcore -->
+- Constants and functions in Arduino protocol code: snake_case inside `namespace ep`
+  (`ep::max_payload`, `ep::compute_crc`).
+- Unscoped enum values: UPPER_CASE (`MSG_PING`).
+- Constants: snake_case (`start_byte`). 
 - No column-aligned assignments. Single spacing only.
 - No trailing underscore or other special annotations on member variables. Private
   members use the same snake_case as any other variable. If a member name would collide
@@ -39,8 +45,7 @@ Full architecture is in `docs/edge_node.md`.
 ## Code Style
 - Doxygen (`/// @brief`) for function/class declarations in `.h` files only.
 - Normal line comments (`// Comment`) in `.cpp` and `.ino` files explaining intent, not restating code.
-- Use `src/rpi/edge_protocol.cpp` as the template for file headers and comment style.
-- No unicode characters in source (no arrows, em dashes, etc.).
+- - No unicode characters in source (no arrows, em dashes, etc.).
 
 ## Namespaces
 - `epcore` - shared wire protocol, used by both RPi and Arduino host-side code.
@@ -50,8 +55,8 @@ Full architecture is in `docs/edge_node.md`.
 - `edgenode::serial` - RPi serial port wrapper.
 - `edgenode::tests` - unit tests.
 - `edgenode::hw_test` - hardware integration tests only, lives in `tests/test_hw.cpp`.
-- Arduino code: Use simple C-style prefixes instead of namespaces to avoid linker issues
-
+- `ep` - Arduino protocol wrapper (`ep::Message`, `ep::compute_crc`, ...), mirrors
+  `edgenode::protocol` on the RPi side.
 ## Code Patterns
 - **RAII everywhere:** Every hardware resource (fd, mmap, SPI) acquires in constructor,
   releases in destructor. No manual cleanup calls in business logic.
