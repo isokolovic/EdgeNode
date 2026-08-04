@@ -24,7 +24,8 @@ Collects processed readings and routes them to one or more output destinations: 
 **Layer 6 — Background service**
 Handles daemon startup, graceful shutdown, automatic restart on failure, and health monitoring so the node runs reliably in production.
 
-<img width="899" height="928" alt="image" src="https://github.com/user-attachments/assets/3d7092e3-50eb-4096-a632-8f83187e488c" />
+<img width="512" height="1047" alt="image" src="https://github.com/user-attachments/assets/11721596-fb28-4949-908f-9d78165ddb3b" />
+
 
 ## Key points
 - **Portable** — hardware-specific details are isolated so the same higher-level code runs across different boards and platforms.
