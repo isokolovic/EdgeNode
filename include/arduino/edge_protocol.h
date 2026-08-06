@@ -1,43 +1,41 @@
-#ifndef EDGENODE_ARDUINO_EDGE_PROTOCOL_H
-#define EDGENODE_ARDUINO_EDGE_PROTOCOL_H
+#pragma once
 
-// Arduino-side wire protocol wrapper.
+// Arduino-side codec wrapping the shared protocol frame.
 // All constants and codec logic come from the shared edge_protocol_core.h.
+// The frame type that crosses this boundary is the shared protocol::WireMessage;
+// the message kind is carried in its id field (protocol::MessageId).
 
 #include "edge_protocol_core.h"
 #include <stdint.h>
 
-static const uint8_t EP_START_BYTE = epcore::start_byte;
-static const uint8_t EP_MAX_PAYLOAD = epcore::max_payload;
-static const int EP_OVERHEAD = epcore::overhead;
+// Split namespace form (not the C++17 "namespace arduino::protocol") because the
+// Arduino target is built with avr-gcc at C++11, which lacks nested namespaces.
+namespace arduino {
+namespace protocol {
 
-/// @brief Wire message types shared by the Raspberry Pi and Arduino.
-enum EPMsgType : uint8_t
-{
-    EP_PING = epcore::MSG_PING,
-    EP_PONG = epcore::MSG_PONG,
-    EP_SENSOR_DATA = epcore::MSG_SENSOR_DATA,
-    EP_GPIO_COMMAND = epcore::MSG_GPIO_COMMAND,
-    EP_ACK = epcore::MSG_ACK,
-    EP_ERROR = epcore::MSG_ERROR,
-};
+// Constants from the shared protocol core, for convenience
+static const uint8_t max_payload = ::protocol::max_payload;
+static const uint8_t stx = ::protocol::stx;
+static const uint8_t etx = ::protocol::etx;
+static const int uart_overhead = ::protocol::uart_overhead;
+static const int uart_max_frame = ::protocol::uart_max_frame;
 
-/// @brief Wire message payload and metadata.
-struct EPMessage
-{
-    uint8_t type;
-    uint8_t length;
-    uint8_t payload[EP_MAX_PAYLOAD];
-    uint8_t checksum;
-};
+/// @brief Compute the CRC-8/CCITT integrity check over id, dlc, seq, and payload.
+uint8_t compute_crc(const ::protocol::WireMessage& msg);
 
-/// @brief Compute XOR checksum over type + length + payload.
-uint8_t ep_compute_checksum(const EPMessage& msg);
+/// @brief Serialize a frame into the UART envelope. Recomputes the CRC.
+/// Returns bytes written or -1 on error.
+int serialize_uart(const ::protocol::WireMessage& msg, uint8_t* buffer, int buffer_size);
 
-/// @brief Serialize a message into a byte buffer and return bytes written or -1 on error.
-int ep_serialize(const EPMessage& msg, uint8_t* buffer, int buffer_size);
+/// @brief Deserialize and validate a UART-framed frame. Returns true when valid.
+bool deserialize_uart(const uint8_t* buffer, int length, ::protocol::WireMessage& msg);
 
-/// @brief Deserialize a byte buffer and return true when the frame is valid.
-bool ep_deserialize(const uint8_t* buffer, int length, EPMessage& msg);
+/// @brief Pack a frame into a CAN data field ([SEQ][payload][CRC]). Recomputes the CRC.
+/// Returns the CAN DLC and the CAN id, or -1 on error.
+int pack_can(const ::protocol::WireMessage& msg, uint16_t& out_can_id, uint8_t* data, int data_size);
 
-#endif
+/// @brief Unpack and validate a CAN data field into a frame. Returns true when valid.
+bool unpack_can(uint16_t can_id, const uint8_t* data, int can_dlc, ::protocol::WireMessage& msg);
+
+} // namespace protocol
+} // namespace arduino

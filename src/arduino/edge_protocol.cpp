@@ -1,26 +1,36 @@
 #include "arduino/edge_protocol.h"
 
-// Forward the Arduino-facing API to the shared codec so protocol logic stays in one place.
-uint8_t ep_compute_checksum(const EPMessage& msg)
+namespace arduino {
+namespace protocol {
+
+uint8_t compute_crc(const ::protocol::WireMessage& msg)
 {
-    return epcore::compute_checksum(msg.type, msg.length, msg.payload);
+    return ::protocol::compute_crc(msg.id, msg.dlc, msg.seq, msg.payload);
 }
 
-int ep_serialize(const EPMessage& msg, uint8_t* buffer, int buffer_size)
+int serialize_uart(const ::protocol::WireMessage& msg, uint8_t* buffer, int buffer_size)
 {
-    return epcore::serialize(msg.type, msg.length, msg.payload, buffer, buffer_size);
+    ::protocol::WireMessage wire = msg;
+    ::protocol::finalize_crc(wire);
+    return ::protocol::serialize_uart(wire, buffer, buffer_size);
 }
 
-bool ep_deserialize(const uint8_t* buffer, int length, EPMessage& msg)
+bool deserialize_uart(const uint8_t* buffer, int length, ::protocol::WireMessage& msg)
 {
-    epcore::WireMessage wire_msg{};
-    if (!epcore::deserialize(buffer, length, wire_msg))
-        return false;
-
-    msg.type = wire_msg.type;
-    msg.length = wire_msg.length;
-    for (uint8_t i = 0; i < wire_msg.length; ++i)
-        msg.payload[i] = wire_msg.payload[i];
-    msg.checksum = wire_msg.checksum;
-    return true;
+    return ::protocol::deserialize_uart(buffer, length, msg);
 }
+
+int pack_can(const ::protocol::WireMessage& msg, uint16_t& out_can_id, uint8_t* data, int data_size)
+{
+    ::protocol::WireMessage wire = msg;
+    ::protocol::finalize_crc(wire);
+    return ::protocol::pack_can(wire, out_can_id, data, data_size);
+}
+
+bool unpack_can(uint16_t can_id, const uint8_t* data, int can_dlc, ::protocol::WireMessage& msg)
+{
+    return ::protocol::unpack_can(can_id, data, can_dlc, msg);
+}
+
+} // namespace protocol
+} // namespace arduino
