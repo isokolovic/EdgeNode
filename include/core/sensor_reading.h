@@ -1,11 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <chrono>
 
-//Test
-
-namespace edgenode::core {
+namespace coretypes {
 
 /// @brief Identifies the source of a sensor reading.
 enum class SensorSource : uint8_t
@@ -32,10 +29,10 @@ enum class ReadingQuality : uint8_t
 /// @brief A single sensor measurement with metadata.
 struct SensorReading
 {
-    std::chrono::steady_clock::time_point timestamp;
+    uint64_t timestamp_ms = 0;
     SensorSource source = SensorSource::UNKNOWN;
     float value = 0.0f;
     ReadingQuality quality = ReadingQuality::GOOD;
 };
 
-} // namespace edgenode::core
+} // namespace coretypes
