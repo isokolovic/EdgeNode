@@ -4,17 +4,17 @@
 #include <utility>
 #include <cassert>
 
-namespace edgenode::core {
+namespace coretypes {
 
 /// @brief A discriminated union holding either a success value T or an error value E.
-///
 /// Models the "either value or error" pattern without exceptions.
 template <typename T, typename E>
 class Result
 {
 public:
-    /// @brief Construct a Result in the success state.    
-    static Result ok(const T& value)
+    /// @brief Construct a Result in the success state.
+    //static = class-level function (factory method pattern)
+    static Result ok(const T& value) 
     {
         Result r;
         r.val = value;
@@ -79,4 +79,4 @@ private:
     bool has_val = false;
 };
 
-} // namespace edgenode::core
+} // namespace coretypes
