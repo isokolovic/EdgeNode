@@ -6,7 +6,7 @@ enum class PinMode { INPUT, OUTPUT };
 
 // Free functions are the raw register layer: they have exactly one backend
 // swapped at compile time (real /dev/gpiomem or the mock). GpioPin below is
-// built on top of them, so the RAII wrapper needs no #ifdef of its own.
+// built on top of them.
 
 /// @brief Map the GPIO registers into process memory.
 /// Must succeed before any pin call, otherwise the register pointer is null.
@@ -55,7 +55,7 @@ public:
     bool is_valid() const { return pin >= 0; }
 
 private:
-    // -1 is the "owns nothing" sentinel: it marks a moved-from object so the
+    // -1 = "owns nothing": it marks a moved-from object so the
     // destructor skips the release and the pin is never reverted twice.
     int pin = -1;
 };
