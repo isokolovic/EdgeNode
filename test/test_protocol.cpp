@@ -82,7 +82,7 @@ namespace tests {
 		msg.payload[1] = 0xAD;
 
 		uint8_t buffer[uart_max_frame]{};
-		int len = serialize_uart(msg, buffer, sizeof(buffer));
+		int len = rpi::protocol::serialize_uart(msg, buffer, sizeof(buffer));
 		ASSERT_EQ(len, uart_overhead + msg.dlc); 
 
 		EXPECT_EQ(buffer[0], stx);
@@ -108,11 +108,11 @@ namespace tests {
 		original.payload[3] = 0x00;
 
 		uint8_t buffer[uart_max_frame]{};
-		int len = serialize_uart(original, buffer, sizeof(buffer));
+		int len = rpi::protocol::serialize_uart(original, buffer, sizeof(buffer));
 		ASSERT_EQ(len, uart_overhead + original.dlc);
 
 		WireMessage decoded{};
-		ASSERT_TRUE(deserialize_uart(buffer, len, decoded));
+		ASSERT_TRUE(rpi::protocol::deserialize_uart(buffer, len, decoded));
 		EXPECT_EQ(decoded.id, original.id);
 		EXPECT_EQ(decoded.dlc, original.dlc);
 		EXPECT_EQ(decoded.seq, original.seq);
@@ -135,11 +135,11 @@ namespace tests {
 			msg.seq = 0;
 
 			uint8_t buffer[uart_max_frame]{};
-			int len = serialize_uart(msg, buffer, sizeof(buffer));
+			int len = rpi::protocol::serialize_uart(msg, buffer, sizeof(buffer));
 			ASSERT_EQ(len, uart_overhead);
 
 			WireMessage decoded{};
-			ASSERT_TRUE(deserialize_uart(buffer, len, decoded));
+			ASSERT_TRUE(rpi::protocol::deserialize_uart(buffer, len, decoded));
 			EXPECT_EQ(decoded.id, id);
 		}
 	}
@@ -157,13 +157,13 @@ namespace tests {
 
 		uint16_t can_id = 0;
 		uint8_t data[8]{};
-		int can_dlc = pack_can(original, can_id, data, sizeof(data));
+		int can_dlc = rpi::protocol::pack_can(original, can_id, data, sizeof(data));
 		ASSERT_EQ(can_dlc, 1 + original.dlc + 1);
 		EXPECT_EQ(can_id, static_cast<uint16_t>(::protocol::MSG_GPIO_COMMAND));
 		EXPECT_EQ(data[0], 17); // SEQ first in the CAN data field.
 
 		WireMessage decoded{};
-		ASSERT_TRUE(unpack_can(can_id, data, can_dlc, decoded)); // unpack_can successful
+		ASSERT_TRUE(rpi::protocol::unpack_can(can_id, data, can_dlc, decoded)); // unpack_can successful
 		EXPECT_EQ(decoded.id, original.id);
 		EXPECT_EQ(decoded.dlc, original.dlc);
 		EXPECT_EQ(decoded.seq, original.seq);
@@ -187,18 +187,18 @@ namespace tests {
 
 		// serialize and deserialize UART
 		uint8_t uart_buf[uart_max_frame]{};
-		int uart_len = serialize_uart(msg, uart_buf, sizeof(uart_buf));
+		int uart_len = rpi::protocol::serialize_uart(msg, uart_buf, sizeof(uart_buf));
 		ASSERT_GT(uart_len, 0);
 		WireMessage from_uart{};
-		ASSERT_TRUE(deserialize_uart(uart_buf, uart_len, from_uart));
+		ASSERT_TRUE(rpi::protocol::deserialize_uart(uart_buf, uart_len, from_uart));
 
 		// serialize and deserialize CAN
 		uint16_t can_id = 0;
 		uint8_t can_data[8]{};
-		int can_dlc = pack_can(msg, can_id, can_data, sizeof(can_data));
+		int can_dlc = rpi::protocol::pack_can(msg, can_id, can_data, sizeof(can_data));
 		ASSERT_GT(can_dlc, 0);
 		WireMessage from_can{};
-		ASSERT_TRUE(unpack_can(can_id, can_data, can_dlc, from_can));
+		ASSERT_TRUE(rpi::protocol::unpack_can(can_id, can_data, can_dlc, from_can));
 
 		// compare the two deserialized messages
 		EXPECT_EQ(from_uart.id, from_can.id);
@@ -215,12 +215,12 @@ namespace tests {
 		WireMessage msg{};
 		msg.id = ::protocol::MSG_PING;
 		uint8_t buffer[uart_max_frame]{};
-		int len = serialize_uart(msg, buffer, sizeof(buffer));
+		int len = rpi::protocol::serialize_uart(msg, buffer, sizeof(buffer));
 		ASSERT_GT(len, 0);
 
 		buffer[0] = 0x00; // Corrupt the STX marker.
 		WireMessage decoded{};
-		EXPECT_FALSE(deserialize_uart(buffer, len, decoded));
+		EXPECT_FALSE(rpi::protocol::deserialize_uart(buffer, len, decoded));
 	}
 
 	// Check that deserialize_uart rejects a frame with a bad ETX marker.
@@ -229,12 +229,12 @@ namespace tests {
 		WireMessage msg{};
 		msg.id = ::protocol::MSG_PING;
 		uint8_t buffer[uart_max_frame]{};
-		int len = serialize_uart(msg, buffer, sizeof(buffer));
+		int len = rpi::protocol::serialize_uart(msg, buffer, sizeof(buffer));
 		ASSERT_GT(len, 0);
 
 		buffer[len - 1] = 0x00; // Corrupt the ETX marker.
 		WireMessage decoded{};
-		EXPECT_FALSE(deserialize_uart(buffer, len, decoded));
+		EXPECT_FALSE(rpi::protocol::deserialize_uart(buffer, len, decoded));
 	}
 
 	// Check that deserialize_uart rejects a frame that is too short to contain a complete header.
@@ -242,7 +242,7 @@ namespace tests {
 	{
 		uint8_t bad[] = { stx, 0x00, 0x01 };
 		WireMessage decoded{};
-		EXPECT_FALSE(deserialize_uart(bad, sizeof(bad), decoded));
+		EXPECT_FALSE(rpi::protocol::deserialize_uart(bad, sizeof(bad), decoded));
 	}
 
 	// Check that deserialize_uart rejects a frame with a DLC that exceeds the maximum allowed payload size.
@@ -254,7 +254,7 @@ namespace tests {
 		bad[2] = 0x01;
 		bad[3] = 0xFF; // DLC far above max_payload.
 		WireMessage decoded{};
-		EXPECT_FALSE(deserialize_uart(bad, sizeof(bad), decoded));
+		EXPECT_FALSE(rpi::protocol::deserialize_uart(bad, sizeof(bad), decoded));
 	}
 
 	// Check that deserialize_uart rejects a frame with a bad CRC, even if the framing is correct.
@@ -268,12 +268,12 @@ namespace tests {
 		msg.payload[1] = 0x22;
 
 		uint8_t buffer[uart_max_frame]{};
-		int len = serialize_uart(msg, buffer, sizeof(buffer));
+		int len = rpi::protocol::serialize_uart(msg, buffer, sizeof(buffer));
 		ASSERT_GT(len, 0);
 
 		buffer[len - 2] ^= 0xFF; // Flip the CRC byte (just before ETX).
 		WireMessage decoded{};
-		EXPECT_FALSE(deserialize_uart(buffer, len, decoded));
+		EXPECT_FALSE(rpi::protocol::deserialize_uart(buffer, len, decoded));
 	}
 
 	// Check that a message with the maximum allowed payload size can be serialized and deserialized over UART without errors.
@@ -287,11 +287,11 @@ namespace tests {
 			msg.payload[i] = i;
 
 		uint8_t buffer[uart_max_frame]{};
-		int len = serialize_uart(msg, buffer, sizeof(buffer));
+		int len = rpi::protocol::serialize_uart(msg, buffer, sizeof(buffer));
 		ASSERT_EQ(len, uart_overhead + max_payload);
 
 		WireMessage decoded{};
-		ASSERT_TRUE(deserialize_uart(buffer, len, decoded));
+		ASSERT_TRUE(rpi::protocol::deserialize_uart(buffer, len, decoded));
 		EXPECT_EQ(decoded.dlc, max_payload);
 		EXPECT_EQ(std::memcmp(decoded.payload, msg.payload, max_payload), 0);
 	}
@@ -304,7 +304,7 @@ namespace tests {
 		msg.dlc = 0;
 
 		uint8_t tiny[2]{};
-		EXPECT_EQ(serialize_uart(msg, tiny, sizeof(tiny)), -1);
+		EXPECT_EQ(rpi::protocol::serialize_uart(msg, tiny, sizeof(tiny)), -1);
 	}
 
 # pragma endregion Serialization tests
