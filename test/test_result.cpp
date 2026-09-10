@@ -3,13 +3,15 @@
 #include <gtest/gtest.h>
 #include <string>
 
-namespace edgenode::tests {
+namespace tests {
 
-using core::Result;
+using coretypes::Result;
 
+// IoError stands in for a real HAL error enum: Result is meant to carry an error
+// code instead of throwing, since exceptions are banned in HAL and protocol code.
 enum class IoError { TIMEOUT, CLOSED };
 
-/// @brief  Test checks that a Result in the success state correctly holds and returns the value, and that the is_ok() and is_err() methods reflect the correct state.
+// The ok state must expose the value and report exactly one of is_ok/is_err.
 TEST(Result, OkHoldsValue)
 {
 	auto r = Result<int, IoError>::ok(7);
@@ -19,7 +21,7 @@ TEST(Result, OkHoldsValue)
 	EXPECT_EQ(r.value(), 7);
 }
 
-/// @brief Test checks that a Result in the error state correctly holds and returns the error, and that the is_ok() and is_err() methods reflect the correct state.
+// The error must return the same value that was passed in. 
 TEST(Result, ErrHoldsError)
 {
 	auto r = Result<int, IoError>::err(IoError::TIMEOUT);
@@ -29,7 +31,8 @@ TEST(Result, ErrHoldsError)
 	EXPECT_EQ(r.error(), IoError::TIMEOUT);
 }
 
-/// @brief Test checks that the value_or() method returns the contained value when the Result is in the success state, and returns the provided fallback value when the Result is in the error state.
+// value_or lets a caller supply a default instead of checking is_ok() first. 
+// The fallback must only be used in the error case.
 TEST(Result, ValueOrReturnsFallbackOnError)
 {
 	auto ok = Result<int, IoError>::ok(5);
@@ -39,22 +42,22 @@ TEST(Result, ValueOrReturnsFallbackOnError)
 	EXPECT_EQ(err.value_or(99), 99);
 }
 
-/// @brief Test checks that a Result can hold and return move-only types (like std::string), and that the move constructor of the value is properly utilized when constructing a Result in the success state with an rvalue.
+// Result must support move-only value types. This test constructs a Result from an rvalue std::string.
 TEST(Result, SupportsMoveOnlyValueTypes)
 {
-	auto r = Result<std::string, IoError>::ok(std::string("payload"));
+	auto r = Result<std::string, IoError>::ok(std::string("payload")); // ::ok() constructs from an rvalue
 
 	ASSERT_TRUE(r.is_ok());
 	EXPECT_EQ(r.value(), "payload");
 }
 
-/// @brief Test checks that the non-const value() accessor allows modifying the contained value when the Result is in the success state, and that the changes are reflected when accessing the value again.
+// This test also proves that Result can be constructed from an rvalue and still return modified values
 TEST(Result, MutableValueAccessor)
 {
-	auto r = Result<int, IoError>::ok(1);
-	r.value() = 42;
+	auto r = Result<int, IoError>::ok(1); // ::ok() constructs from an rvalue
+	r.value() = 42; // assign through the reference
 
 	EXPECT_EQ(r.value(), 42);
 }
 
-} // namespace edgenode::tests
+} // namespace tests
