@@ -5,11 +5,12 @@
 #include <thread>
 #include <vector>
 
-namespace edgenode::tests {
+namespace tests {
 
-using core::RingBuffer;
+using coretypes::RingBuffer;
 
-/// @brief Test checks that a newly created RingBuffer is empty, has a size of zero, and that popping from it returns no value, ensuring that the initial state of the buffer is correctly set up for use.
+// A fresh buffer must have head == tail: empty, size 0, and pop yields nullopt
+// rather than a stale slot value.
 TEST(RingBuffer, StartsEmpty)
 {
 	RingBuffer<int, 4> rb;
@@ -19,7 +20,7 @@ TEST(RingBuffer, StartsEmpty)
 	EXPECT_FALSE(rb.pop().has_value());
 }
 
-/// @brief Test checks that after pushing items into the RingBuffer, the size reflects the number of items, and that popping returns the items in the order they were pushed, ensuring that the buffer maintains correct FIFO behavior.
+// Basic FIFO order: items come out in push order, and size tracks head - tail.
 TEST(RingBuffer, PushThenPop)
 {
 	RingBuffer<int, 4> rb;
@@ -32,7 +33,9 @@ TEST(RingBuffer, PushThenPop)
 	EXPECT_TRUE(rb.empty());
 }
 
-/// @brief Test checks that when more items are pushed into the RingBuffer than its capacity, the oldest items are overwritten according to the drop-oldest policy, and that popping returns the most recent items in the correct order, ensuring that the buffer correctly handles overflow situations without crashing or losing synchronization.
+// Pins the drop-oldest overflow policy. Pushing past capacity must advance tail
+// rather than block or corrupt the buffer, so the newest Capacity items survive
+// in order and size never exceeds Capacity.
 TEST(RingBuffer, DropsOldestOnOverflow)
 {
 	RingBuffer<int, 4> rb;
@@ -85,4 +88,4 @@ TEST(RingBuffer, SingleProducerSingleConsumerNoLoss)
 	EXPECT_TRUE(rb.empty());
 }
 
-} // namespace edgenode::tests
+} // namespace tests
