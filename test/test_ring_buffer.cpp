@@ -9,7 +9,7 @@ namespace tests {
 
 using coretypes::RingBuffer;
 
-// A fresh buffer must have head == tail: empty, size 0, and pop yields nullopt
+// @brief A fresh buffer must have head == tail: empty, size 0, and pop yields nullopt
 // rather than a stale slot value.
 TEST(RingBuffer, StartsEmpty)
 {
@@ -20,7 +20,7 @@ TEST(RingBuffer, StartsEmpty)
 	EXPECT_FALSE(rb.pop().has_value());
 }
 
-// Basic FIFO order: items come out in push order, and size tracks head - tail.
+// @brief Basic FIFO order: items come out in push order, and size tracks head - tail.
 TEST(RingBuffer, PushThenPop)
 {
 	RingBuffer<int, 4> rb;
@@ -33,7 +33,7 @@ TEST(RingBuffer, PushThenPop)
 	EXPECT_TRUE(rb.empty());
 }
 
-// Pins the drop-oldest overflow policy. Pushing past capacity must advance tail
+// @brief Pins the drop-oldest overflow policy. Pushing past capacity must advance tail
 // rather than block or corrupt the buffer, so the newest Capacity items survive
 // in order and size never exceeds Capacity.
 TEST(RingBuffer, DropsOldestOnOverflow)
@@ -51,7 +51,7 @@ TEST(RingBuffer, DropsOldestOnOverflow)
 	EXPECT_FALSE(rb.pop().has_value());
 }
 
-// One producer, one consumer, no data loss.
+// @brief One producer, one consumer, no data loss.
 // The producer applies backpressure (waits while full) so the drop-oldest
 // policy never discards an item, letting us assert every value arrives in order.
 TEST(RingBuffer, SingleProducerSingleConsumerNoLoss)

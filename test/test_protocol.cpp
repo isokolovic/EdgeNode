@@ -32,7 +32,7 @@ namespace tests {
 		return crc;
 	}
 
-	// Test verifies that the production code's CRC matches the reference implementatio (used for validation)
+	// @brief Test verifies that the production code's CRC matches the reference implementatio (used for validation)
 	TEST(Protocol, CrcMatchesCcittReference)
 	{
 		// 0x010 = SENSOR_DATA id, dlc=2, seq=5, payload {0xAB, 0xCD} 
@@ -52,7 +52,7 @@ namespace tests {
 		EXPECT_EQ(compute_crc(msg), reference_crc(sample, sizeof(sample)));
 	}
 
-	// Tests that the CRC is not a simple XOR of the bytes, which would be a weak checksum.
+	// @brief Tests that the CRC is not a simple XOR of the bytes, which would be a weak checksum.
 	TEST(Protocol, CrcIsNotPlainXor)
 	{
 		WireMessage msg{};
@@ -71,7 +71,7 @@ namespace tests {
 
 # pragma Region Serialization tests
 
-	// Test that the UART serialization produces the expected byte layout for a known message.
+	// @brief Test that the UART serialization produces the expected byte layout for a known message.
 	TEST(Protocol, UartFrameLayout)
 	{
 		WireMessage msg{};
@@ -95,7 +95,7 @@ namespace tests {
 		EXPECT_EQ(buffer[len - 1], etx);
 	}
 
-	// Test that the UART serialization and deserialization roundtrip works for a known message.
+	// @brief Test that the UART serialization and deserialization roundtrip works for a known message.
 	TEST(Protocol, UartRoundtrip)
 	{
 		WireMessage original{};
@@ -119,7 +119,7 @@ namespace tests {
 		EXPECT_EQ(std::memcmp(decoded.payload, original.payload, decoded.dlc), 0);
 	}
 
-	// Test UART serialization and deserialization for all message types, ensuring that the ID is preserved.
+	// @brief Test UART serialization and deserialization for all message types, ensuring that the ID is preserved.
 	TEST(Protocol, AllMessageTypesUartRoundtrip)
 	{
 		uint16_t ids[] = {
@@ -144,7 +144,7 @@ namespace tests {
 		}
 	}
 
-	// Test that the CAN serialization and deserialization roundtrip works for a known message.
+	// @brief Test that the CAN serialization and deserialization roundtrip works for a known message.
 	TEST(Protocol, CanRoundtrip)
 	{
 		WireMessage original{};
@@ -173,7 +173,7 @@ namespace tests {
 		EXPECT_EQ(std::memcmp(decoded.payload, original.payload, decoded.dlc), 0); 
 	}
 
-	// Test ensures that a message serialized over UART and CAN retains the same logical content, including CRC, when deserialized. 
+	// @brief Test ensures that a message serialized over UART and CAN retains the same logical content, including CRC, when deserialized. 
 	// This verifies that the protocol is transport-agnostic
 	TEST(Protocol, UartAndCanCarryIdenticalLogicalContent)
 	{
@@ -208,7 +208,7 @@ namespace tests {
 		EXPECT_EQ(std::memcmp(from_uart.payload, from_can.payload, from_uart.dlc), 0);
 	}
 
-	// Check that deserialize_uart rejects a frame with a bad STX marker.
+	// @brief Check that deserialize_uart rejects a frame with a bad STX marker.
 	// Ensures that the decoder does not accept frames with corrupted STX
 	TEST(Protocol, RejectsBadStx)
 	{
@@ -223,7 +223,7 @@ namespace tests {
 		EXPECT_FALSE(rpi::protocol::deserialize_uart(buffer, len, decoded));
 	}
 
-	// Check that deserialize_uart rejects a frame with a bad ETX marker.
+	// @brief Check that deserialize_uart rejects a frame with a bad ETX marker.
 	TEST(Protocol, RejectsBadEtx)
 	{
 		WireMessage msg{};
@@ -237,7 +237,7 @@ namespace tests {
 		EXPECT_FALSE(rpi::protocol::deserialize_uart(buffer, len, decoded));
 	}
 
-	// Check that deserialize_uart rejects a frame that is too short to contain a complete header.
+	// @brief Check that deserialize_uart rejects a frame that is too short to contain a complete header.
 	TEST(Protocol, RejectsTruncatedFrame)
 	{
 		uint8_t bad[] = { stx, 0x00, 0x01 };
@@ -245,7 +245,7 @@ namespace tests {
 		EXPECT_FALSE(rpi::protocol::deserialize_uart(bad, sizeof(bad), decoded));
 	}
 
-	// Check that deserialize_uart rejects a frame with a DLC that exceeds the maximum allowed payload size.
+	// @brief Check that deserialize_uart rejects a frame with a DLC that exceeds the maximum allowed payload size.
 	TEST(Protocol, RejectsOversizedDlc)
 	{
 		uint8_t bad[uart_max_frame]{};
@@ -257,7 +257,7 @@ namespace tests {
 		EXPECT_FALSE(rpi::protocol::deserialize_uart(bad, sizeof(bad), decoded));
 	}
 
-	// Check that deserialize_uart rejects a frame with a bad CRC, even if the framing is correct.
+	// @brief Check that deserialize_uart rejects a frame with a bad CRC, even if the framing is correct.
 	TEST(Protocol, RejectsBadCrc)
 	{
 		WireMessage msg{};
@@ -276,7 +276,7 @@ namespace tests {
 		EXPECT_FALSE(rpi::protocol::deserialize_uart(buffer, len, decoded));
 	}
 
-	// Check that a message with the maximum allowed payload size can be serialized and deserialized over UART without errors.
+	// @brief Check that a message with the maximum allowed payload size can be serialized and deserialized over UART without errors.
 	TEST(Protocol, MaxPayloadUartRoundtrip)
 	{
 		WireMessage msg{};
@@ -296,7 +296,7 @@ namespace tests {
 		EXPECT_EQ(std::memcmp(decoded.payload, msg.payload, max_payload), 0);
 	}
 
-	// Check that serialize_uart returns -1 when the provided buffer is too small to hold the serialized message.
+	// @brief Check that serialize_uart returns -1 when the provided buffer is too small to hold the serialized message.
 	TEST(Protocol, SerializeFailsWhenBufferTooSmall)
 	{
 		WireMessage msg{};

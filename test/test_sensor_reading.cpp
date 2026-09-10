@@ -10,7 +10,7 @@ using coretypes::ReadingQuality;
 using coretypes::SensorReading;
 using coretypes::SensorSource;
 
-// Test that the aggregate constructor correctly initialises all fields.
+// @brief Test that the aggregate constructor correctly initialises all fields.
 TEST(SensorReading, AggregateConstruction)
 {
 	SensorReading r{ 1234, SensorSource::DHT11_TEMPERATURE, 21.5f, ReadingQuality::GOOD }; // aggregate initialisation
@@ -21,7 +21,7 @@ TEST(SensorReading, AggregateConstruction)
 	EXPECT_EQ(r.quality, ReadingQuality::GOOD);
 }
 
-// Test the default constructor and value initialisation of SensorReading.
+// @brief Test the default constructor and value initialisation of SensorReading.
 TEST(SensorReading, ValueInitialisesToZero)
 {
 	SensorReading r{}; // uninitialised aggregate
@@ -32,7 +32,7 @@ TEST(SensorReading, ValueInitialisesToZero)
 	EXPECT_EQ(r.quality, ReadingQuality::GOOD);
 }
 
-// Guards against someone later adding a constructor, destructor or std::string
+// @brief Guards against someone later adding a constructor, destructor or std::string
 // member: that would break the RingBuffer static_assert and the lock-free copy.
 TEST(SensorReading, IsTriviallyCopyable)
 {
@@ -40,7 +40,7 @@ TEST(SensorReading, IsTriviallyCopyable)
 	EXPECT_TRUE(std::is_trivially_copyable_v<SensorReading>);
 }
 
-// End to end check of the actual message bus usage: a reading pushed into the
+// @brief End to end check of the actual message bus usage: a reading pushed into the
 // ring buffer must come back out field for field identical.
 TEST(SensorReading, TravelsThroughRingBuffer)
 {
