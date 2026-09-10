@@ -46,6 +46,39 @@ enum MessageId : uint16_t
     MSG_ERROR = 0x7FF,
 };
 
+/// @brief Per-sender, per-message-id sequence counter (0..255, wrapping).
+/// The sender stamps every outgoing frame with next(); the receiver compares the
+/// received value against its expectation to spot replays, reordering and drops.
+class SequenceCounter
+{
+public:
+    /// @brief Return the current value and advance (wraps at 255).
+    uint8_t next()
+    {
+        uint8_t current = val;
+        val = static_cast<uint8_t>(val + 1);
+        return current;
+    }
+
+    /// @brief Value that will be handed out by the next call to next().
+    uint8_t peek() const { return val; }
+
+    /// @brief Restart the counter at zero.
+    void reset() { val = 0; }
+
+private:
+    uint8_t val = 0;
+};
+
+/// @brief Distance from the expected sequence number to the received one,
+/// using wrapping arithmetic. 0 means the frame is the expected one, 1..127
+/// means that many frames were dropped, and values above 127 indicate an old
+/// (replayed or reordered) frame.
+inline uint8_t seq_gap(uint8_t expected, uint8_t received)
+{
+    return static_cast<uint8_t>(received - expected);
+}
+
 /// @brief Transport-independent logical frame shared by Raspberry Pi and Arduino.
 struct WireMessage
 {
