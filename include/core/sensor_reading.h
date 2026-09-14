@@ -15,6 +15,7 @@ enum class SensorSource : uint8_t
     JOYSTICK = 5,
     HALL_EFFECT = 6,
     BUTTON = 7,
+	COUNT, // This is not a valid source. It indicates the number of valid sources (used for validation). Must be last member!
 };
 
 /// @brief Indicates the quality or reliability of a sensor reading.
@@ -24,6 +25,7 @@ enum class ReadingQuality : uint8_t
 	STALE = 1, //Data is old but still usable, may be less reliable
 	ESTIMATED = 2, //Value is estimated based on previous readings or other sensors, not directly measured
 	BAD = 3, //Data is unreliable or invalid, should not be used for decision making
+	COUNT, // This is not a valid quality. It indicates the number of valid qualities (used for validation). Must be last member!
 };
 
 /// @brief A single sensor measurement with metadata.
