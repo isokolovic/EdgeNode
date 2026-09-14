@@ -70,10 +70,7 @@ private:
     uint8_t val = 0;
 };
 
-/// @brief Distance from the expected sequence number to the received one,
-/// using wrapping arithmetic. 0 means the frame is the expected one, 1..127
-/// means that many frames were dropped, and values above 127 indicate an old
-/// (replayed or reordered) frame.
+/// @brief Distance from the expected sequence number to the received one. A positive gap indicates that frames were dropped; a negative gap indicates a replay.
 inline uint8_t seq_gap(uint8_t expected, uint8_t received)
 {
     return static_cast<uint8_t>(received - expected);
